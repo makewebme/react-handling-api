@@ -1,5 +1,7 @@
 import React, { useState, useEffect } from 'react'
 
+import { delayRandomly, throwRandomly } from './helpers'
+
 
 const PostData = ({ id }) => {
   // Данные полученного поста
@@ -14,6 +16,11 @@ const PostData = ({ id }) => {
     // взятым из state'а компонента выше
     fetch(`https://jsonplaceholder.typicode.com/todos/${id}`)
       .then(res => res.json())
+      .then(async data => {
+        await delayRandomly()
+        throwRandomly()
+        return data
+      })
       .then(
         (result) => setData(result), // Дергаем если данные успешно получены
         (e) => console.warn('fetch failure', e) // Дергаем, если произошла ошибка запроса
