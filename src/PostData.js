@@ -7,17 +7,28 @@ const PostData = ({ id }) => {
   // Данные полученного поста
   const [ data, setData ] = useState(null)
 
-  // Место для хранения промиса с запросом
-  const lastPromise = useRef()
+  // Место для хранения свежайшего AbortController'а
+  const lastAbortController = useRef()
 
   // Дергаем, когда меняется ID
   useEffect(() => {
     // Опустошаем данные
     setData(null)
 
+    // Если уже есть сохранённый AbortController, то отменяем его
+    if (lastAbortController.current) {
+      lastAbortController.current.abort()
+    }
+
+    // Создаем AbortController для нового запроса и сохраняем его
+    const curAbortController = new AbortController()
+    lastAbortController.current = curAbortController
+
     // Делаем запрос на получение поста с текущим ID
     // взятым из state'а компонента выше и сохранем промис
-    const curPromise = fetch(`https://jsonplaceholder.typicode.com/todos/${id}`)
+    const curPromise = fetch(`https://jsonplaceholder.typicode.com/todos/${id}`, {
+      signal: curAbortController.signal
+    })
       .then(res => res.json())
       .then(async data => {
         await delayRandomly()
@@ -25,24 +36,10 @@ const PostData = ({ id }) => {
         return data
       })
 
-    // Сразу сохраняем промис в ref
-    lastPromise.current = curPromise
-
     // Обрабатываем ответ сервера
     curPromise.then(
-      res => {
-        // Если это тот же промис, то записываем ответ...
-        if (curPromise === lastPromise.current) {
-          setData(res)
-        }
-        // ...иначе не записываем и, соответственно, не обновляем компоненты
-      },
-      e => {
-        // Если это тот же промис, то выдаем ошибку соединения...
-        if (curPromise === lastPromise.current) {
-          console.warn('fetch failure', e)
-        }
-      }
+      res => setData(res),
+      e => console.warn('fetch failure', e)
     )
   }, [ id ])
 
